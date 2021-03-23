@@ -7,12 +7,40 @@ from pyspark import SparkConf, SparkContext
 import json
 import copy
 from functools import partial
+from hdfs3 import HDFileSystem
+import configparser
+import os
 
-fee_filepath= "data/fee.csv"
-HEfee_filepath= "data/HEfee.csv"
-pubkey_filepath='data/public_key.json'
-privatekey_filepath='data/private_key.json'
+# fee_filepath= "hdfs://node1:9000/proj/bigdataprocess/data/fee.csv"
+# HEfee_filepath= "hdfs://node1:9000/proj/bigdataprocess/data/HEfee.csv"
+# pubkey_filepath='hdfs://node1:9000/proj/bigdataprocess/data/public_key.json'
+# privatekey_filepath='hdfs://node1:9000/proj/bigdataprocess/data/private_key.json'
 
+isDebug=""
+fee_filepath=""
+HEfee_filepath=""
+pubkey_filepath=""
+privatekey_filepath=""
+
+def PreProcess():
+    #read conf
+    # get current code file addr
+    currcodedir = os.path.dirname(os.path.realpath(__file__))
+    MainConffile = currcodedir + os.sep + "project.config"
+    cf = configparser.ConfigParser()
+    cf.read(MainConffile)
+    global isDebug, fee_filepath, HEfee_filepath, pubkey_filepath, privatekey_filepath
+    isDebug = cf.get("backend", "Debug") == "True"
+    if isDebug:
+        fee_filepath=cf.get("backend", "filepath_local")+ os.sep +"data/fee.csv"
+        HEfee_filepath= cf.get("backend", "filepath_local")+ os.sep +"data/HEfee.csv"
+        pubkey_filepath=cf.get("backend", "filepath_local")+ os.sep +'data/public_key.json'
+        privatekey_filepath=cf.get("backend", "filepath_local")+ os.sep +'data/private_key.json'
+    else:
+        fee_filepath=cf.get("backend", "filepath_hdfs")+ os.sep +"data/fee.csv"
+        HEfee_filepath= cf.get("backend", "filepath_hdfs")+ os.sep +"data/HEfee.csv"
+        pubkey_filepath=cf.get("backend", "filepath_hdfs")+ os.sep +'data/public_key.json'
+        privatekey_filepath=cf.get("backend", "filepath_hdfs")+ os.sep +'data/private_key.json'
 
 def saveFee(x):
     with open(HEfee_filepath, 'a') as f:
@@ -22,10 +50,15 @@ def saveFee(x):
 
 
 def JsonSerialisation(res_rdd,public_key,private_key):
-
     #rdd
-    with open(HEfee_filepath, 'w') as f:
-        f.write("ciphertext"+","+"exponent"+"\n")
+    if isDebug:
+        with open(HEfee_filepath, 'w') as f:
+            f.write("ciphertext"+","+"exponent"+"\n")
+    else:
+        hdfs = HDFileSystem(host='node1:9000', port=8020)
+        with hdfs.open(HEfee_filepath,'w') as f:
+            f.write("ciphertext"+","+"exponent"+"\n")
+
     res_rdd.foreach(saveFee)
     #pub key
     enc_with_one_pub_key = {}
@@ -40,8 +73,9 @@ def JsonSerialisation(res_rdd,public_key,private_key):
 
 
 if __name__ == '__main__':
-
-    sparksn = SparkSession.builder.master("local[*]").appName("fee_calc").getOrCreate()
+    PreProcess()
+    sparksn = SparkSession.builder.appName("fee_calc").getOrCreate()
+    #sparksn = SparkSession.builder.master("local[*]").appName("fee_calc").getOrCreate()
     print("app start")
 
     #generate public key and private key
@@ -61,3 +95,4 @@ if __name__ == '__main__':
     #save rdd results, public key and private key
     JsonSerialisation(res_rdd,public_key,private_key)
 
+    print("Congratulations, all done!")
