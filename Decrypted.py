@@ -25,12 +25,6 @@ def GetRDDlist(pub_key, rddfile):
     return hedatalist
 
 if __name__ == '__main__':
-    # sparksn = SparkSession.builder.master("local[*]").appName("fee_calc").getOrCreate()
-    # print("app start")
-    # # create SparkConf and SparkContext
-    # sc=sparksn.sparkContext
-
-
     #get public key
     with open('data/public_key.json', 'r') as f:
         received_dict = json.loads(f.read())
