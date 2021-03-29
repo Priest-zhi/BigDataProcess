@@ -1,0 +1,40 @@
+
+spark-submit -conf spark.yarn.appMasterEnv.PYSPARK_PYTHON=/root/anaconda3/envs/python36/ -amaster yarn-cluster -archives /proj/bigdataprocess/python36.zip 
+
+### example PI  success !!!!!
+spark-submit -c spark.yarn.appMasterEnv.PYSPARK_PYTHON=/root/anaconda3/envs/python36/bin/python\
+ --master yarn --deploy-mode client  /opt/software/spark-2.4.7-bin-hadoop2.7/examples/src/main/python/pi.py
+ 
+
+  spark-submit -c spark.yarn.appMasterEnv.PYSPARK_PYTHON=/root/anaconda3/envs/python36/bin/python \
+  -c spark.pyspark.driver.python=/root/anaconda3/envs/python36/bin/python \
+  -c spark.pyspark.python=/root/anaconda3/envs/python36/bin/python \
+  --archives hdfs://node1:9000/proj/bigdataprocess/python36.zip  --master yarn --deploy-mode client \
+    /opt/software/spark-2.4.7-bin-hadoop2.7/examples/src/main/python/pi.py
+
+
+  spark-submit -c spark.yarn.appMasterEnv.PYSPARK_PYTHON=/root/anaconda3/envs/python36/bin/python \
+  -c spark.pyspark.driver.python=/root/anaconda3/envs/python36/bin/python \
+  -c spark.pyspark.python=/root/anaconda3/envs/python36/bin/python \
+  --executor-memory 2G --driver-memory 1G --num-executors 1 --executor-cores 1\
+  --archives hdfs://node1:9000/proj/bigdataprocess/python36.zip  --master yarn --deploy-mode client \
+    /opt/proj/BigDataProcess/Encrypted.py
+
+### my code v1.0
+      spark-submit -c spark.yarn.appMasterEnv.PYSPARK_PYTHON=/root/anaconda3/envs/python36/bin/python \
+  --executor-memory 1G --driver-memory 1G --num-executors 1 --executor-cores 1\
+  --archives hdfs://node1:9000/proj/bigdataprocess/python36.zip  --master yarn --deploy-mode client \
+    /opt/proj/BigDataProcess/Encrypted.py
+
+#v1.1
+spark-submit -c spark.yarn.appMasterEnv.PYSPARK_PYTHON=./python36/python36/bin/python\
+  --executor-memory 1G --num-executors 1 \
+  --archives hdfs://node1:9000/proj/bigdataprocess/python36.zip \
+  --master yarn --deploy-mode client  /opt/proj/BigDataProcess/Encrypted.py
+
+
+#### example for PI
+      spark-submit -c spark.yarn.appMasterEnv.PYSPARK_PYTHON=/root/anaconda3/envs/python36/bin/python \
+  --executor-memory 1G --driver-memory 1G --num-executors 1 --executor-cores 1\
+  --archives hdfs://node1:9000/proj/bigdataprocess/python36.zip  --master yarn --deploy-mode client \
+   /opt/software/spark-2.4.7-bin-hadoop2.7/examples/src/main/python/pi.py
