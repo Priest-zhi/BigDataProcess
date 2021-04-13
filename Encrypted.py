@@ -11,12 +11,8 @@ from hdfs3 import HDFileSystem
 import configparser
 import os
 
-# fee_filepath= "hdfs://node1:9000/proj/bigdataprocess/data/fee.csv"
-# HEfee_filepath= "hdfs://node1:9000/proj/bigdataprocess/data/HEfee.csv"
-# pubkey_filepath='hdfs://node1:9000/proj/bigdataprocess/data/public_key.json'
-# privatekey_filepath='hdfs://node1:9000/proj/bigdataprocess/data/private_key.json'
 
-isDebug=""
+isLocal=""
 fee_filepath=""
 HEfee_filepath=""
 pubkey_filepath=""
@@ -29,32 +25,34 @@ def PreProcess():
     MainConffile = currcodedir + os.sep + "project.config"
     cf = configparser.ConfigParser()
     cf.read(MainConffile)
-    global isDebug, fee_filepath, HEfee_filepath, pubkey_filepath, privatekey_filepath
-    isDebug = cf.get("backend", "Debug") == "True"
-    if isDebug:
-        fee_filepath=cf.get("backend", "filepath_local")+ os.sep +"data/fee.csv"
-        HEfee_filepath= cf.get("backend", "filepath_local")+ os.sep +"data/HEfee.csv"
-        pubkey_filepath=cf.get("backend", "filepath_local")+ os.sep +'data/public_key.json'
-        privatekey_filepath=cf.get("backend", "filepath_local")+ os.sep +'data/private_key.json'
+    global isLocal, fee_filepath, HEfee_filepath, pubkey_filepath, privatekey_filepath
+    isLocal = cf.get("backend", "isLocal") == "True"
+    if isLocal:
+        #sparkContext using local file needs "file://"
+        fee_filepath="file://"+cf.get("backend", "filepath_local")+ os.sep +"fee.csv"
+        #python create local file dont needs "file://"
+        HEfee_filepath= cf.get("backend", "filepath_local")+ os.sep +"HEfee.csv"
+        pubkey_filepath=cf.get("backend", "filepath_local")+ os.sep +'public_key.json'
+        privatekey_filepath=cf.get("backend", "filepath_local")+ os.sep +'private_key.json'
     else:
-        fee_filepath=cf.get("backend", "filepath_hdfs")+ os.sep +"data/fee.csv"
-        HEfee_filepath= cf.get("backend", "filepath_hdfs")+ os.sep +"data/HEfee.csv"
-        pubkey_filepath=cf.get("backend", "filepath_hdfs")+ os.sep +'data/public_key.json'
-        privatekey_filepath=cf.get("backend", "filepath_hdfs")+ os.sep +'data/private_key.json'
+        fee_filepath="hdfs://"+cf.get("backend", "filepath_hdfs")+ os.sep +"fee.csv"
+        HEfee_filepath="hdfs://"+ cf.get("backend", "filepath_hdfs")+ os.sep +"HEfee.csv"
+        pubkey_filepath="hdfs://"+cf.get("backend", "filepath_hdfs")+ os.sep +"public_key.json"
+        privatekey_filepath="hdfs://"+cf.get("backend", "filepath_hdfs")+ os.sep +'private_key.json'
 
 def saveFee(x):
+    print("in func savefile")
     with open(HEfee_filepath, 'a') as f:
-        print("save file")
         f.write(str(x.ciphertext())+","+str(x.exponent)+'\n')
-
 
 
 def JsonSerialisation(res_rdd,public_key,private_key):
     #rdd
-    if isDebug:
+    if isLocal:
         with open(HEfee_filepath, 'w') as f:
             f.write("ciphertext"+","+"exponent"+"\n")
     else:
+        # not test
         hdfs = HDFileSystem(host='node1:9000', port=8020)
         with hdfs.open(HEfee_filepath,'w') as f:
             f.write("ciphertext"+","+"exponent"+"\n")
@@ -75,7 +73,6 @@ def JsonSerialisation(res_rdd,public_key,private_key):
 if __name__ == '__main__':
     PreProcess()
     sparksn = SparkSession.builder.appName("fee_calc").getOrCreate()
-    #sparksn = SparkSession.builder.master("local[*]").appName("fee_calc").getOrCreate()
     print("app start")
 
     #generate public key and private key
@@ -85,12 +82,9 @@ if __name__ == '__main__':
     sc=sparksn.sparkContext
     fee_rdd =sc.textFile(fee_filepath)
     header = fee_rdd.first()
-    # res_rdd = fee_rdd.filter(lambda hline: hline != header).map(lambda cline: cline.split(',')[1]).reduce(
-    #     lambda a, b: int(a) + int(b))
     res_rdd = fee_rdd.filter(lambda hline: hline != header)\
         .map(lambda cline: cline.split(',')[1].strip())\
         .map(lambda x:public_key.encrypt(float(x)))
-        # .reduce(lambda a,b:a+b)
 
     #save rdd results, public key and private key
     JsonSerialisation(res_rdd,public_key,private_key)
