@@ -26,19 +26,19 @@ def PreProcess():
     cf = configparser.ConfigParser()
     cf.read(MainConffile)
     global isLocal, fee_filepath, HEfee_filepath, pubkey_filepath, privatekey_filepath
-    isLocal = cf.get("backend", "isLocal") == "True"
+    isLocal = cf.get("spark", "isLocal") == "True"
     if isLocal:
         #sparkContext using local file needs "file://"
-        fee_filepath="file://"+cf.get("backend", "filepath_local")+ os.sep +"fee.csv"
+        fee_filepath="file://"+cf.get("spark", "filepath_local")+ os.sep +"fee.csv"
         #python create local file dont needs "file://"
-        HEfee_filepath= cf.get("backend", "filepath_local")+ os.sep +"HEfee.csv"
-        pubkey_filepath=cf.get("backend", "filepath_local")+ os.sep +'public_key.json'
-        privatekey_filepath=cf.get("backend", "filepath_local")+ os.sep +'private_key.json'
+        HEfee_filepath= cf.get("spark", "filepath_local")+ os.sep +"HEfee.csv"
+        pubkey_filepath=cf.get("spark", "filepath_local")+ os.sep +'public_key.json'
+        privatekey_filepath=cf.get("spark", "filepath_local")+ os.sep +'private_key.json'
     else:
-        fee_filepath="hdfs://"+cf.get("backend", "filepath_hdfs")+ os.sep +"fee.csv"
-        HEfee_filepath="hdfs://"+ cf.get("backend", "filepath_hdfs")+ os.sep +"HEfee.csv"
-        pubkey_filepath="hdfs://"+cf.get("backend", "filepath_hdfs")+ os.sep +"public_key.json"
-        privatekey_filepath="hdfs://"+cf.get("backend", "filepath_hdfs")+ os.sep +'private_key.json'
+        fee_filepath="hdfs://"+cf.get("spark", "filepath_hdfs")+ os.sep +"fee.csv"
+        HEfee_filepath="hdfs://"+ cf.get("spark", "filepath_hdfs")+ os.sep +"HEfee.csv"
+        pubkey_filepath="hdfs://"+cf.get("spark", "filepath_hdfs")+ os.sep +"public_key.json"
+        privatekey_filepath="hdfs://"+cf.get("spark", "filepath_hdfs")+ os.sep +'private_key.json'
 
 def saveFee(x):
     print("in func savefile")
