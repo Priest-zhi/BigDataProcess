@@ -17,6 +17,9 @@ fee_filepath=""
 HEfee_filepath=""
 pubkey_filepath=""
 privatekey_filepath=""
+HEfilename=""
+columnname=""
+
 
 def PreProcess():
     #read conf
@@ -25,37 +28,44 @@ def PreProcess():
     MainConffile = currcodedir + os.sep + "project.config"
     cf = configparser.ConfigParser()
     cf.read(MainConffile)
-    global isLocal, fee_filepath, HEfee_filepath, pubkey_filepath, privatekey_filepath
+    global isLocal, fee_filepath, HEfee_filepath, pubkey_filepath, privatekey_filepath,HEfilename,columnname
+    HEfilename = cf.get("spark", "filename")
+    columnname = cf.get("spark", "columnname")
     isLocal = cf.get("spark", "isLocal") == "True"
     if isLocal:
-        #sparkContext using local file needs "file://"
-        fee_filepath="file://"+cf.get("spark", "filepath_local")+ os.sep +"fee.csv"
-        #python create local file dont needs "file://"
+        #sparkContext using local file needs "file:///"
+        fee_filepath="file:///"+cf.get("spark", "filepath_local")+ os.sep +HEfilename
+        #python create local file dont needs "file:///"
         HEfee_filepath= cf.get("spark", "filepath_local")+ os.sep +"HEfee.csv"
         pubkey_filepath=cf.get("spark", "filepath_local")+ os.sep +'public_key.json'
         privatekey_filepath=cf.get("spark", "filepath_local")+ os.sep +'private_key.json'
     else:
-        fee_filepath="hdfs://"+cf.get("spark", "filepath_hdfs")+ os.sep +"fee.csv"
+        fee_filepath="hdfs://"+cf.get("spark", "filepath_hdfs")+ os.sep +HEfilename
         HEfee_filepath="hdfs://"+ cf.get("spark", "filepath_hdfs")+ os.sep +"HEfee.csv"
         pubkey_filepath="hdfs://"+cf.get("spark", "filepath_hdfs")+ os.sep +"public_key.json"
         privatekey_filepath="hdfs://"+cf.get("spark", "filepath_hdfs")+ os.sep +'private_key.json'
 
-def saveFee(x):
+def saveFee(listx):
     print("in func savefile")
     with open(HEfee_filepath, 'a') as f:
-        f.write(str(x.ciphertext())+","+str(x.exponent)+'\n')
+        for i, val in enumerate(listx):
+            if (i + 1) == len(listx):
+                f.write(str(val.ciphertext()) + "\t" + str(val.exponent) + '\n')
+            else:
+                f.write(str(val.ciphertext()) + "\t" + str(val.exponent) + ',')
+
 
 
 def JsonSerialisation(res_rdd,public_key,private_key):
     #rdd
     if isLocal:
         with open(HEfee_filepath, 'w') as f:
-            f.write("ciphertext"+","+"exponent"+"\n")
+            f.write(columnname+"\n")
     else:
         # not test
         hdfs = HDFileSystem(host='node1:9000', port=8020)
         with hdfs.open(HEfee_filepath,'w') as f:
-            f.write("ciphertext"+","+"exponent"+"\n")
+            f.write(columnname+"\n")
 
     res_rdd.foreach(saveFee)
     #pub key
@@ -83,8 +93,8 @@ if __name__ == '__main__':
     fee_rdd =sc.textFile(fee_filepath)
     header = fee_rdd.first()
     res_rdd = fee_rdd.filter(lambda hline: hline != header)\
-        .map(lambda cline: cline.split(',')[1].strip())\
-        .map(lambda x:public_key.encrypt(float(x)))
+        .map(lambda cline: cline.strip().split(','))\
+        .map(lambda listline: [public_key.encrypt(float(ele)) for ele in listline])
 
     #save rdd results, public key and private key
     JsonSerialisation(res_rdd,public_key,private_key)
