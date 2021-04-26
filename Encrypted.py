@@ -107,7 +107,7 @@ def main():
 
 def saveResult(costtime):
     with open("./myresult", 'a') as f:
-        fstr="filename: {}, costtime: {}".format(HEfilename,costtime)
+        fstr="filename: {}, costtime: {} \n".format(HEfilename,costtime)
         f.write(fstr)
 
 if __name__ == '__main__':
